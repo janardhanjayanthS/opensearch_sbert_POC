@@ -35,7 +35,7 @@ def get_sentence_tokens(file_contents: list[str]):
     return tokenized_content
 
 
-def semantic_chunker(text_list, window_size=3, threshold_percentile=90):
+def semantic_chunker(text_list, window_size=1, threshold_percentile=75):
     model = SentenceTransformer("all-MiniLM-L6-v2")
 
     # 1. Generate individual sentence embeddings
@@ -49,8 +49,6 @@ def semantic_chunker(text_list, window_size=3, threshold_percentile=90):
         end = min(len(embeddings), i + window_size + 1)
         combined_embeddings.append(np.mean(embeddings[start:end], axis=0))
 
-    print(f"Combined Embeddings: {combined_embeddings}")
-
     # 3. Calculate Cosine Distances (1 - Similarity)
     # Distance is easier to visualize for "peaks" where topics change
     distances = []
@@ -58,11 +56,10 @@ def semantic_chunker(text_list, window_size=3, threshold_percentile=90):
         similarity = util.cos_sim(combined_embeddings[i], combined_embeddings[i + 1])
         distances.append(1 - similarity.item())
 
-    print(f"Distances: {distances}")
     # 4. Percentile Thresholding: Find the "outliers" (the biggest shifts)
     breakpoint_threshold = np.percentile(distances, threshold_percentile)
+    # print(f"BP Threshold: {breakpoint_threshold}")
 
-    print(f"BP Threshold: {breakpoint_threshold}")
     # 5. Build the Chunks
     chunks = []
     current_chunk = [text_list[0]]
@@ -86,11 +83,12 @@ if __name__ == "__main__":
     file_contents = get_file_contents(filepath=f"{pdf_dir}\\{pdf_files[0]}")
     sentence_tokens = get_sentence_tokens(file_contents=file_contents)
     my_chunks = semantic_chunker(
-        sentence_tokens, window_size=2, threshold_percentile=95
+        sentence_tokens, window_size=3, threshold_percentile=80
     )
     print(f"CHUNKS: {my_chunks}")
     print(f"CHUNKS length: {len(my_chunks)}")
 
     for i, chunk in enumerate(my_chunks):
-        print(f"{i} - {chunk}")
+        print(f"{chunk} {len(chunk)}")
         print("-" * 30)
+    print(len(my_chunks))

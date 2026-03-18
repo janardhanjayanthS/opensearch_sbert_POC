@@ -1,5 +1,3 @@
-import os
-import pathlib
 import re
 from typing import Optional
 
@@ -77,10 +75,8 @@ def semantic_chunker(text_list, window_size=1, threshold_percentile=75):
 
 
 if __name__ == "__main__":
-    current_file_path = pathlib.Path(__file__)
-    pdf_dir = str(current_file_path.parent.parent) + "\\files\\pdf\\"
-    pdf_files = os.listdir(pdf_dir)
-    file_contents = get_file_contents(filepath=f"{pdf_dir}\\{pdf_files[0]}")
+    file_path = "..\\files\\pdf\\English\\PTO Policy Chatsworth.pdf"
+    file_contents = get_file_contents(file_path)
     sentence_tokens = get_sentence_tokens(file_contents=file_contents)
     my_chunks = semantic_chunker(
         sentence_tokens, window_size=3, threshold_percentile=80
@@ -89,6 +85,6 @@ if __name__ == "__main__":
     print(f"CHUNKS length: {len(my_chunks)}")
 
     for i, chunk in enumerate(my_chunks):
-        print(f"{chunk} {len(chunk)}")
+        print(f"{chunk} | {len(chunk)}")
         print("-" * 30)
     print(len(my_chunks))

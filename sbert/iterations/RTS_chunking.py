@@ -23,9 +23,9 @@ splitter = RecursiveCharacterTextSplitter(
 )
 
 if __name__ == "__main__":
-    file_contents = get_file_contents(
-        "..\\files\\pdf\\Extended Leave and Career Breaks Policy United Kingdom .pdf"
-    )
+    file_path = "..\\..\\files\\pdf\\German\\bestatigung_unfallfreie_zeitraume.pdf"
+    file_contents = get_file_contents(file_path)
+    # print(file_contents)
     text = "".join(list(file_contents))
     split_text = splitter.split_text(text=text)
     for each_text in split_text:

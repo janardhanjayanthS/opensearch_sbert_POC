@@ -9,10 +9,10 @@ from sentence_transformers import SentenceTransformer
 class SemanticChunker:
     def __init__(
         self,
-        model_name: str = "all-MiniLM-L6-v2",  # Your specified model
+        model_name: str = "all-MiniLM-L12-v2",  # Your specified model
         similarity_threshold: float = 0.5,
-        min_chunk_size: int = 500,
-        max_chunk_size: int = 2000,
+        min_chunk_size: int = 1000,
+        max_chunk_size: int = 1000,
     ):
         self.model = SentenceTransformer(model_name)
         self.similarity_threshold = similarity_threshold
@@ -99,10 +99,11 @@ def get_file_contents(filepath: str) -> Optional[list[str]]:
 
 # Usage
 if __name__ == "__main__":
-    chunker = SemanticChunker()
-    file_contents = get_file_contents(
-        "..\\files\\pdf\\Extended Leave and Career Breaks Policy United Kingdom .pdf"
+    chunker = SemanticChunker(
+        model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
     )
+    file_path = "..\\files\\pdf\\German\\arbeitgeber_probezeitkundigungen.pdf"
+    file_contents = get_file_contents(file_path)
     text = "".join(list(file_contents))
     chunks = chunker.chunk(text)
     for chunk in chunks:

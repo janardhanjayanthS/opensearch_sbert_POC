@@ -180,23 +180,20 @@ def get_raw_page_texts(filepath: str) -> Optional[List[str]]:
 if __name__ == "__main__":
     chunker = SectionAwareChunker(
         # model_name="PM-AI/bi-encoder_msmarco_bert-base_german"
+        max_chunk_size=500
     )
 
     files = [
         # "..\\files\\pdf\\English\\PTO Policy Chatsworth.pdf",
-        # "..\\files\\pdf\\English\\Canada Vacation-Flexible Time Off (FTO) Policy 2025.pdf",
+        "..\\files\\pdf\\English\\Canada Vacation-Flexible Time Off (FTO) Policy 2025.pdf",
+        "..\\files\\pdf\\English\\sbert_test_2col.pdf",
         # "..\\files\\pdf\\English\\Extended Leave and Career Breaks Policy United Kingdom .pdf",
         # "..\\files\\pdf\\English\\ResMed SaaS Paid Time-Off Policy.pdf",
-
-        # Germans
-        "..\\files\\pdf\\German\\archivierung_und_wiedervorlage.pdf",
+        # German
+        # "..\\files\\pdf\\German\\archivierung_und_wiedervorlage.pdf",
     ]
 
     for file_path in files:
-        print(f"\n{'=' * 60}")
-        print(f"FILE: {file_path.split(chr(92))[-1]}")
-        print("=" * 60)
-
         pages = get_raw_page_texts(file_path)
         if not pages:
             print("Failed to read file")

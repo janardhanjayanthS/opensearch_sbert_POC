@@ -11,8 +11,8 @@ class SemanticChunker:
         self,
         model_name: str = "all-MiniLM-L12-v2",  # Your specified model
         similarity_threshold: float = 0.5,
-        min_chunk_size: int = 1000,
-        max_chunk_size: int = 1000,
+        min_chunk_size: int = 200,
+        max_chunk_size: int = 5000,
     ):
         self.model = SentenceTransformer(model_name)
         self.similarity_threshold = similarity_threshold
@@ -99,10 +99,9 @@ def get_file_contents(filepath: str) -> Optional[list[str]]:
 
 # Usage
 if __name__ == "__main__":
-    chunker = SemanticChunker(
-        model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
-    )
-    file_path = "..\\files\\pdf\\German\\arbeitgeber_probezeitkundigungen.pdf"
+    chunker = SemanticChunker()
+    # file_path = "..\\files\\pdf\\English\\Canada Vacation-Flexible Time off (FTO) Policy 2025.pdf"
+    file_path = "..\\files\\pdf\\English\\sbert_test_2col.pdf"
     file_contents = get_file_contents(file_path)
     text = "".join(list(file_contents))
     chunks = chunker.chunk(text)

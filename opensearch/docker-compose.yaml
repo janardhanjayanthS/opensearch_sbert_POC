@@ -1,0 +1,18 @@
+version: '3'
+services:
+  opensearch-node:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-local
+    environment:
+      - cluster.name=rag-cluster
+      - node.name=rag-node
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # Limits RAM usage for local dev
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=StrongPassword123! # Required for setup
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9200:9200 # Port for the REST API

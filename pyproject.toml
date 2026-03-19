@@ -11,6 +11,7 @@ dependencies = [
     "nltk>=3.9.3",
     "numpy>=2.4.3",
     "openai>=2.29.0",
+    "opensearch-py>=3.1.0",
     "protobuf>=7.34.0",
     "pymupdf>=1.27.2",
     "sentence-transformers>=5.3.0",

@@ -52,7 +52,7 @@ def create_index(index_name: str = "my-openai-rag-index") -> None:
         print(f"Index {index_name} already exists.")
 
 
-def add_document(doc_id: int, text: str, filepath: str) -> None:
+def add_document(index_name: str, doc_id: int, text: str, filepath: str) -> None:
     """
     Embed ``text`` using OpenAI's ``text-embedding-3-large`` and store it in OpenSearch.
 
@@ -74,7 +74,7 @@ def add_document(doc_id: int, text: str, filepath: str) -> None:
     print(f"Added document {doc_id} to OpenSearch.")
 
 
-def search(user_query: str) -> None:
+def search(index_name: str, user_query: str) -> None:
     """
     Perform a KNN vector search against the index using ``user_query`` as input.
 
@@ -108,7 +108,7 @@ def search(user_query: str) -> None:
     for hit in results["hits"]["hits"]:
         score = hit["_score"]
         text = hit["_source"]["text_chunk"]
-        file = hit["source"]["file_path"]
+        file = hit["_source"]["file_path"]
         print(f"Score (Similarity): {score:.4f} | Text: {text}")
         print(f"File path: {file}")
 

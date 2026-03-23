@@ -29,9 +29,7 @@ def create_index() -> None:
       matching the output dimension of ``text-embedding-3-large``
     """
     index_body = {
-        "settings": {
-            "index.knn": True
-        },
+        "settings": {"index.knn": True},
         "mappings": {
             "properties": {
                 "text_chunk": {"type": "text"},
@@ -114,12 +112,13 @@ def search(user_query: str) -> None:
         print(f"Score (Similarity): {score:.4f} | Text: {text}")
 
 
-if __name__ == "__main__":
-    create_index()
-    add_document(doc_id=1, text="The Eiffel Tower is located in Paris, France.")
-    add_document(doc_id=2, text="Python is a popular programming language for AI.")
-    add_document(
-        doc_id=3,
-        text="OpenSearch is a distributed search engine fork of Elasticsearch.",
-    )
-    search("Where can I find a famous French landmark?")
+# FOR TESTING OPENSEARCH
+# if __name__ == "__main__":
+#     create_index()
+#     add_document(doc_id=1, text="The Eiffel Tower is located in Paris, France.")
+#     add_document(doc_id=2, text="Python is a popular programming language for AI.")
+#     add_document(
+#         doc_id=3,
+#         text="OpenSearch is a distributed search engine fork of Elasticsearch.",
+#     )
+#     search("Where can I find a famous French landmark?")

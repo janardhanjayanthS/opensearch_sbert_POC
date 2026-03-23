@@ -98,14 +98,14 @@ def get_file_contents(filepath: str) -> Optional[list[str]]:
 
 
 # Usage
-if __name__ == "__main__":
-    chunker = SemanticChunker()
-    # file_path = "..\\files\\pdf\\English\\Canada Vacation-Flexible Time off (FTO) Policy 2025.pdf"
-    file_path = "..\\files\\pdf\\English\\sbert_test_2col.pdf"
-    file_contents = get_file_contents(file_path)
-    text = "".join(list(file_contents))
-    chunks = chunker.chunk(text)
-    for chunk in chunks:
-        print(chunk, len(chunk))
-        print("-" * 50)
-    print(len(chunks))
+# if __name__ == "__main__":
+#     chunker = SemanticChunker()
+#     # file_path = "..\\files\\pdf\\English\\Canada Vacation-Flexible Time off (FTO) Policy 2025.pdf"
+#     file_path = "..\\files\\pdf\\English\\sbert_test_2col.pdf"
+    # file_contents = get_file_contents(file_path)
+    # text = "".join(list(file_contents))
+#     chunks = chunker.chunk(text)
+#     for chunk in chunks:
+#         print(chunk, len(chunk))
+#         print("-" * 50)
+#     print(len(chunks))

@@ -16,10 +16,8 @@ os_client = OpenSearch(
     ssl_show_warn=False,
 )
 
-index_name = "my-openai-rag-index"
 
-
-def create_index() -> None:
+def create_index(index_name: str = "my-openai-rag-index") -> None:
     """
     Create the OpenSearch index with KNN vector search enabled if it doesn't already exist.
 
@@ -33,6 +31,7 @@ def create_index() -> None:
         "mappings": {
             "properties": {
                 "text_chunk": {"type": "text"},
+                "file_path": {"type": "text"},
                 "embedding": {
                     "type": "knn_vector",
                     "dimension": 3072,
@@ -53,7 +52,7 @@ def create_index() -> None:
         print(f"Index {index_name} already exists.")
 
 
-def add_document(doc_id: int, text: str) -> None:
+def add_document(doc_id: int, text: str, filepath: str) -> None:
     """
     Embed ``text`` using OpenAI's ``text-embedding-3-large`` and store it in OpenSearch.
 
@@ -69,7 +68,7 @@ def add_document(doc_id: int, text: str) -> None:
     )
     vector = response.data[0].embedding
 
-    document = {"text_chunk": text, "embedding": vector}
+    document = {"text_chunk": text, "embedding": vector, "file_path": filepath}
 
     os_client.index(index=index_name, body=document, id=doc_id, refresh=True)
     print(f"Added document {doc_id} to OpenSearch.")
@@ -109,16 +108,31 @@ def search(user_query: str) -> None:
     for hit in results["hits"]["hits"]:
         score = hit["_score"]
         text = hit["_source"]["text_chunk"]
+        file = hit["source"]["file_path"]
         print(f"Score (Similarity): {score:.4f} | Text: {text}")
+        print(f"File path: {file}")
+
+
+def delete_index(index_name: str) -> None:
+    os_client.indices.delete(index=index_name)
 
 
 # FOR TESTING OPENSEARCH
 # if __name__ == "__main__":
 #     create_index()
-#     add_document(doc_id=1, text="The Eiffel Tower is located in Paris, France.")
-#     add_document(doc_id=2, text="Python is a popular programming language for AI.")
+#     add_document(
+#         doc_id=1,
+#         text="The Eiffel Tower is located in Paris, France.",
+#         filepath="random file path 1",
+#     )
+#     add_document(
+#         doc_id=2,
+#         text="Python is a popular programming language for AI.",
+#         filepath="random file path 2",
+#     )
 #     add_document(
 #         doc_id=3,
 #         text="OpenSearch is a distributed search engine fork of Elasticsearch.",
+#         filepath="random file path 3",
 #     )
 #     search("Where can I find a famous French landmark?")

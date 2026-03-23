@@ -1,12 +1,6 @@
-import os
-
-from dotenv import load_dotenv
-from openai import OpenAI
 from opensearchpy import OpenSearch
 
-load_dotenv()
-
-openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+from embed.embedder import get_vectors
 
 os_client = OpenSearch(
     hosts=[{"host": "localhost", "port": 9200}],
@@ -63,10 +57,7 @@ def add_document(index_name: str, doc_id: int, text: str, filepath: str) -> None
         doc_id: Unique identifier for the document in the index.
         text: Raw text to embed and store.
     """
-    response = openai_client.embeddings.create(
-        model="text-embedding-3-large", input=text
-    )
-    vector = response.data[0].embedding
+    vector = get_vectors(text=text)
 
     document = {"text_chunk": text, "embedding": vector, "file_path": filepath}
 
@@ -85,10 +76,7 @@ def search(index_name: str, user_query: str) -> None:
     Args:
         user_query: Natural language query to search for semantically similar documents.
     """
-    query_response = openai_client.embeddings.create(
-        model="text-embedding-3-large", input=user_query
-    )
-    query_vector = query_response.data[0].embedding
+    query_vector = get_vectors(text=user_query)
 
     search_query = {
         "size": 5,

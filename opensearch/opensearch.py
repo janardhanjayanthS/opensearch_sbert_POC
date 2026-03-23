@@ -70,7 +70,7 @@ def add_document(index_name: str, doc_id: int, text: str, filepath: str) -> None
 
     document = {"text_chunk": text, "embedding": vector, "file_path": filepath}
 
-    os_client.index(index=index_name, body=document, id=doc_id, refresh=True)
+    os_client.index(index=index_name, body=document, id=doc_id)
     print(f"Added document {doc_id} to OpenSearch.")
 
 

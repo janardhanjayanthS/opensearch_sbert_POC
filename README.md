@@ -72,10 +72,12 @@ opensearch-poc/
 | Requirement | Details |
 |---|---|
 | Python | >= 3.12 |
-| OpenSearch | Running locally on `localhost:9200` with SSL |
+| OpenSearch | Running locally on `localhost:9200` with SSL — see [Docker setup](docs/docker.md) |
 | OpenAI API key | `text-embedding-3-large` access |
 
 ### OpenSearch setup
+
+See **[docs/docker.md](docs/docker.md)** for full Docker and Docker Compose instructions.
 
 The client connects with:
 - **Host:** `localhost:9200`

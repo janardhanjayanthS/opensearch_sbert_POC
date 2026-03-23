@@ -8,6 +8,15 @@ BASE_PATH = "files\\pdf\\English"
 
 
 def get_file_paths() -> Optional[list[str]]:
+    """
+    Collect all file paths from the base PDF directory.
+
+    Reads every file in ``BASE_PATH`` and returns their full relative paths.
+
+    Returns:
+        A list of file path strings, e.g.
+        ``["files\\pdf\\English\\doc.pdf", ...]``.
+    """
     pdfs = os.listdir(BASE_PATH)
     file_paths = []
     for pdf in pdfs:
@@ -16,6 +25,20 @@ def get_file_paths() -> Optional[list[str]]:
 
 
 if __name__ == "__main__":
+    """
+    Entry point for the PDF ingestion and semantic search pipeline.
+
+    Pipeline steps:
+        1. Discover all PDFs under ``BASE_PATH``.
+        2. Extract and clean text from each PDF page (via PyMuPDF).
+        3. Semantically chunk the text using sentence embeddings
+           (``all-MiniLM-L12-v2``) and cosine-similarity breakpoints.
+        4. Embed each chunk with OpenAI ``text-embedding-3-large`` and
+           store it as a KNN vector document in the OpenSearch index.
+        5. Accept natural-language queries in a loop, embed the query,
+           and return the top-5 most similar chunks from the index.
+           Type ``e`` or ``exit`` to quit.
+    """
     count = 1
     file_paths = get_file_paths()
     # Chunker

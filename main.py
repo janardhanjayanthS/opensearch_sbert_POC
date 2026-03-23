@@ -12,11 +12,14 @@ if __name__ == "__main__":
     chunks = chunker.chunk(text)
 
     # embedding + storing
-    create_index()
+    create_index(index_name="openai_rag_index_one")
     for id, chunk in enumerate(chunks, start=1):
-        add_document(doc_id=id, text=chunk)
+        add_document(doc_id=id, text=chunk, filepath=filepath)
 
     query = input("Search: ")
 
     # searching
     search(user_query=query)
+
+    # delete index (table)
+    # delete_index(index_name="openai_rag_index_one")

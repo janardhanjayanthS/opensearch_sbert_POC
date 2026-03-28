@@ -11,8 +11,6 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 def get_vectors(text: str) -> list:
-    response = client.embeddings.create(
-        input="hello world", model="text-embedding-3-large"
-    )
+    response = client.embeddings.create(input=text, model="text-embedding-3-large")
     embedding = response.data[0].embedding
     return embedding

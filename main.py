@@ -68,3 +68,4 @@ if __name__ == "__main__":
 
     # delete index (table)
     # delete_index(index_name="openai_rag_index_one")
+    # delete_index(index_name="sample_index")

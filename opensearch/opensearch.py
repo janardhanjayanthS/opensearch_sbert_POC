@@ -61,7 +61,7 @@ def add_document(index_name: str, doc_id: int, text: str, filepath: str) -> None
 
     document = {"text_chunk": text, "embedding": vector, "file_path": filepath}
 
-    os_client.index(index=index_name, body=document, id=doc_id)
+    os_client.index(index=index_name, body=document, id=doc_id, refresh=True)
     print(f"Added document {doc_id} to OpenSearch.")
 
 
@@ -107,20 +107,24 @@ def delete_index(index_name: str) -> None:
 
 # FOR TESTING OPENSEARCH
 # if __name__ == "__main__":
-#     create_index()
+#     index = "sample_idx"
+#     create_index(index_name=index)
 #     add_document(
 #         doc_id=1,
 #         text="The Eiffel Tower is located in Paris, France.",
 #         filepath="random file path 1",
+#         index_name=index,
 #     )
 #     add_document(
 #         doc_id=2,
 #         text="Python is a popular programming language for AI.",
 #         filepath="random file path 2",
+#         index_name=index,
 #     )
 #     add_document(
 #         doc_id=3,
 #         text="OpenSearch is a distributed search engine fork of Elasticsearch.",
 #         filepath="random file path 3",
+#         index_name=index,
 #     )
-#     search("Where can I find a famous French landmark?")
+#     search(user_query="Where can I find a famous French landmark?", index_name=index)

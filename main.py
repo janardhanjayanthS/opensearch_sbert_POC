@@ -1,4 +1,5 @@
 import os
+from time import perf_counter
 from typing import Optional
 
 from opensearch.opensearch import add_document, create_index, search
@@ -64,7 +65,10 @@ if __name__ == "__main__":
             break
 
         # searching
+        start = perf_counter()
         search(index_name=index, user_query=query)
+        end = perf_counter()
+        print(f"Response time: {end - start}")
 
     # delete index (table)
     # delete_index(index_name="openai_rag_index_one")

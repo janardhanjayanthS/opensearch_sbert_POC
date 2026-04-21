@@ -9,10 +9,22 @@ services:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # Limits RAM usage for local dev
-      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=StrongPassword123! # Required for setup
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD} # Required for setup - gets from .env
     ulimits:
       memlock:
         soft: -1
         hard: -1
     ports:
       - 9200:9200 # Port for the REST API
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    ports:
+      - 5601:5601
+    environment:
+      - OPENSEARCH_HOSTS=["https://opensearch-node:9200"]
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD}
+    depends_on:
+      - opensearch-node

@@ -1,10 +1,17 @@
+from os import getenv
+
+from dotenv import load_dotenv
 from opensearchpy import OpenSearch
 
 from embed.embedder import get_vectors
 
+load_dotenv()
+
+OPENSEARCH_ADMIN_PASSWORD = getenv("OPENSEARCH_ADMIN_PASSWORD")
+
 os_client = OpenSearch(
     hosts=[{"host": "localhost", "port": 9200}],
-    http_auth=("admin", "StrongPassword123!"),
+    http_auth=("admin", OPENSEARCH_ADMIN_PASSWORD),
     use_ssl=True,
     verify_certs=False,
     ssl_show_warn=False,

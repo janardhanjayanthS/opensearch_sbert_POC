@@ -6,6 +6,7 @@ from opensearch.opensearch import add_document, create_index, search
 from sbert.chunking_class import SemanticChunker, get_file_contents
 
 BASE_PATH = "files\\pdf\\English"
+# BASE_PATH = "files\\pdf\\Books"
 
 
 def get_file_paths() -> Optional[list[str]]:
@@ -40,23 +41,23 @@ if __name__ == "__main__":
            and return the top-5 most similar chunks from the index.
            Type ``e`` or ``exit`` to quit.
     """
-    count = 1
-    file_paths = get_file_paths()
-    # Chunker
-    chunker = SemanticChunker()
+    index = "openai_rag_index_one"
+
+    # file_paths = get_file_paths()
+    # # Chunker
+    # chunker = SemanticChunker()
 
     # Create a new index (table)
-    index = "openai_rag_index_one"
-    create_index(index_name=index)
-    for filepath in file_paths:
-        file_contents = get_file_contents(filepath)
-        text = "".join(list(file_contents))
-        chunks = chunker.chunk(text)
+    # create_index(index_name=index)
+    # for filepath in file_paths:
+    #     file_contents = get_file_contents(filepath)
+    #     text = "".join(list(file_contents))
+    #     chunks = chunker.chunk(text)
+    #     print(f"{len(chunks)} chunks from {filepath}")
 
-        # embedding + storing
-        for chunk in chunks:
-            add_document(index_name=index, doc_id=count, text=chunk, filepath=filepath)
-            count += 1
+    #     # embedding + storing
+    #     for idx, chunk in enumerate(chunks, start=1):
+    #         add_document(index_name=index, chunk_idx=idx, text=chunk, filepath=filepath)
 
     while True:
         query = input("Search: ")
@@ -68,8 +69,9 @@ if __name__ == "__main__":
         start = perf_counter()
         search(index_name=index, user_query=query)
         end = perf_counter()
-        print(f"Response time: {end - start}")
+        print('-')
+        print(f"Response time: {round(end - start, 4)} ms")
+        print('-')
 
-    # delete index (table)
-    # delete_index(index_name="openai_rag_index_one")
+    # delete_index(index_name=index)
     # delete_index(index_name="sample_index")

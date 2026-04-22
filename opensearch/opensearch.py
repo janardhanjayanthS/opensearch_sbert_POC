@@ -1,3 +1,4 @@
+import hashlib
 from os import getenv
 
 from dotenv import load_dotenv
@@ -53,46 +54,74 @@ def create_index(index_name: str = "my-openai-rag-index") -> None:
         print(f"Index {index_name} already exists.")
 
 
-def add_document(index_name: str, doc_id: int, text: str, filepath: str) -> None:
+def add_document(index_name: str, chunk_idx: int, text: str, filepath: str) -> None:
     """
-    Embed ``text`` using OpenAI's ``text-embedding-3-large`` and store it in OpenSearch.
+    Embed ``text`` using OpenAI's ``text-embedding-3-large``
+    and store it in OpenSearch.
 
     The document is indexed immediately (``refresh=True``) so it is
     searchable without waiting for the next index refresh cycle.
 
     Args:
-        doc_id: Unique identifier for the document in the index.
+        chunk_idx: pos of chunk from all chunk_list starting from 1.
         text: Raw text to embed and store.
     """
     vector = get_vectors(text=text)
 
     document = {"text_chunk": text, "embedding": vector, "file_path": filepath}
 
+    doc_id = hashlib.sha1(f"{filepath}:{chunk_idx}".encode()).hexdigest()
     os_client.index(index=index_name, body=document, id=doc_id, refresh=True)
-    print(f"Added document {doc_id} to OpenSearch.")
+    print(f"Added chunk {doc_id} to OpenSearch.")
 
 
-def search(index_name: str, user_query: str) -> None:
+def search(
+    index_name: str,
+    user_query: str,
+    size: int = 5,
+    k: int = 5,
+    bm25_weight: float = 1.0,
+    vector_weight: float = 1.5,
+) -> None:
     """
-    Perform a KNN vector search against the index using ``user_query`` as input.
+    Perform a hybrid BM25 + KNN vector search against the index.
 
-    The query is embedded with the same model used during indexing, then the
-    top-5 nearest neighbours are retrieved by cosine similarity. Results are
-    printed with their similarity score and source text.
+    BM25 matches ``text_chunk`` lexically; KNN matches ``embedding`` semantically.
+    Scores are combined via a ``bool.should`` with per-clause ``boost`` weights.
 
     Args:
-        user_query: Natural language query to search for semantically similar documents.
+        user_query: Natural language query.
+        size: Number of hits to return.
+        k: KNN neighbours to retrieve before scoring.
+        bm25_weight: Boost applied to BM25 clause.
+        vector_weight: Boost applied to KNN clause.
     """
-    query_vector = get_vectors(text=user_query)
+    query_text = user_query.lower()
+    query_vector = get_vectors(text=query_text)
 
     search_query = {
-        "size": 5,
+        "size": size,
+        "_source": ["text_chunk", "file_path"],
         "query": {
-            "knn": {
-                "embedding": {
-                    "vector": query_vector,
-                    "k": 5,
-                }
+            "bool": {
+                "should": [
+                    {
+                        "multi_match": {
+                            "query": query_text,
+                            "fields": ["text_chunk^2"],
+                            "boost": bm25_weight,
+                        }
+                    },
+                    {
+                        "knn": {
+                            "embedding": {
+                                "vector": query_vector,
+                                "k": k,
+                                "boost": vector_weight,
+                            }
+                        }
+                    },
+                ]
             }
         },
     }
@@ -106,6 +135,7 @@ def search(index_name: str, user_query: str) -> None:
         file = hit["_source"]["file_path"]
         print(f"Score (Similarity): {score:.4f} | Text: {text}")
         print(f"File path: {file}")
+        print("-")
 
 
 def delete_index(index_name: str) -> None:

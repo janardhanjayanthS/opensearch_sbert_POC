@@ -43,21 +43,21 @@ if __name__ == "__main__":
     """
     index = "openai_rag_index_one"
 
-    # file_paths = get_file_paths()
-    # # Chunker
-    # chunker = SemanticChunker()
+    file_paths = get_file_paths()
+    # Chunker
+    chunker = SemanticChunker()
 
     # Create a new index (table)
-    # create_index(index_name=index)
-    # for filepath in file_paths:
-    #     file_contents = get_file_contents(filepath)
-    #     text = "".join(list(file_contents))
-    #     chunks = chunker.chunk(text)
-    #     print(f"{len(chunks)} chunks from {filepath}")
+    create_index(index_name=index)
+    for filepath in file_paths:
+        file_contents = get_file_contents(filepath)
+        text = "".join(list(file_contents))
+        chunks = chunker.chunk(text)
+        print(f"{len(chunks)} chunks from {filepath}")
 
-    #     # embedding + storing
-    #     for idx, chunk in enumerate(chunks, start=1):
-    #         add_document(index_name=index, chunk_idx=idx, text=chunk, filepath=filepath)
+        # embedding + storing
+        for idx, chunk in enumerate(chunks, start=1):
+            add_document(index_name=index, chunk_idx=idx, text=chunk, filepath=filepath)
 
     while True:
         query = input("Search: ")
@@ -69,9 +69,8 @@ if __name__ == "__main__":
         start = perf_counter()
         search(index_name=index, user_query=query)
         end = perf_counter()
-        print('-')
-        print(f"Response time: {round(end - start, 4)} ms")
-        print('-')
+        print("-")
+        print(f"Response time: {round(end - start, 4)} s")
+        print("-")
 
     # delete_index(index_name=index)
-    # delete_index(index_name="sample_index")

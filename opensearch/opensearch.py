@@ -80,21 +80,17 @@ def search(
     user_query: str,
     size: int = 5,
     k: int = 5,
-    bm25_weight: float = 1.0,
-    vector_weight: float = 1.5,
 ) -> None:
     """
-    Perform a hybrid BM25 + KNN vector search against the index.
+    Perform a KNN vector search against the index.
 
-    BM25 matches ``text_chunk`` lexically; KNN matches ``embedding`` semantically.
-    Scores are combined via a ``bool.should`` with per-clause ``boost`` weights.
+    Query is embedded with the same model used during ingest, then the top-``size``
+    nearest neighbours are retrieved from the HNSW graph by cosine similarity.
 
     Args:
         user_query: Natural language query.
         size: Number of hits to return.
-        k: KNN neighbours to retrieve before scoring.
-        bm25_weight: Boost applied to BM25 clause.
-        vector_weight: Boost applied to KNN clause.
+        k: KNN neighbours to retrieve from HNSW per shard.
     """
     query_text = user_query.lower()
     query_vector = get_vectors(text=query_text)
@@ -103,25 +99,11 @@ def search(
         "size": size,
         "_source": ["text_chunk", "file_path"],
         "query": {
-            "bool": {
-                "should": [
-                    {
-                        "multi_match": {
-                            "query": query_text,
-                            "fields": ["text_chunk^2"],
-                            "boost": bm25_weight,
-                        }
-                    },
-                    {
-                        "knn": {
-                            "embedding": {
-                                "vector": query_vector,
-                                "k": k,
-                                "boost": vector_weight,
-                            }
-                        }
-                    },
-                ]
+            "knn": {
+                "embedding": {
+                    "vector": query_vector,
+                    "k": k,
+                }
             }
         },
     }

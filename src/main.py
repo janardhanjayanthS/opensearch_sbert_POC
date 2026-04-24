@@ -55,6 +55,7 @@ if __name__ == "__main__":
         comparison_result = check_similar_existing_category_else_return_new(
             new_category=category, existing_categories=list(existing_categories.keys())
         )
+        print(f'Comparison result: {comparison_result}')
 
         if comparison_result == category:
             category_id = add_category(category_name=category)

@@ -77,6 +77,7 @@ def add_category(category_name: str) -> str:
         "embedding": vector,
     }
 
+    print(f"Adding new category: {category_name}")
     os_client.index(body=content, id=category_id, index="category_index", refresh=True)
     return category_id
 

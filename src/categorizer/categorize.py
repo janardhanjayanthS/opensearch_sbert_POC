@@ -3,7 +3,10 @@ from os import getenv
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 
-from src.categorizer.prompt import CATEGORIZE_SYSTEM_PROMPT, COMPARE_CATEGORIES_SYSTEM_PROMPT
+from src.categorizer.prompt import (
+    CATEGORIZE_SYSTEM_PROMPT,
+    COMPARE_CATEGORIES_SYSTEM_PROMPT,
+)
 
 # from prompt import CATEGORIZE_SYSTEM_PROMPT, COMPARE_CATEGORIES_SYSTEM_PROMPT # while testing
 
@@ -27,6 +30,7 @@ def get_category(text: str) -> str:
             {"role": "human", "content": text},
         ]
     )
+    print(f"Created new category for {text} -> {response.content}")
     return response.content
 
 
@@ -45,6 +49,9 @@ def check_similar_existing_category_else_return_new(
     Returns:
         Matched existing category name, or new_category if no close match found.
     """
+    print(
+        f"Comparing new category: {new_category} with existing categories: {existing_categories} using AI"
+    )
     response = openai.invoke(
         [
             {"role": "system", "content": COMPARE_CATEGORIES_SYSTEM_PROMPT},
@@ -58,4 +65,8 @@ def check_similar_existing_category_else_return_new(
 
 
 # if __name__ == "__main__":
+#     print(check_similar_existing_category_else_return_new(
+#         new_category='automobile',
+#         existing_categories=['transport', 'food', 'games']
+#     ))
 #     get_category(text=input("enter text to get category: "))

@@ -1,12 +1,12 @@
-# OpenSearch POC — PDF Semantic Search
+# OpenSearch POC — Memory RAG with Auto-Categorization
 
-A proof-of-concept pipeline that ingests PDF documents, chunks them semantically, embeds the chunks with OpenAI, and stores them in OpenSearch for vector (KNN) similarity search.
+A pipeline that ingests plain-text notes/memories, auto-categorizes them using an LLM, embeds them with OpenAI, and stores them in OpenSearch for semantic (KNN) similarity search.
 
 ---
 
 ## Overview
 
-This project answers natural-language queries against a corpus of PDF files. Instead of keyword matching, it uses dense vector embeddings so that semantically similar content is retrieved even when exact words differ.
+Designed for personal memory retrieval — store notes, reminders, observations, or any free-form text. Each entry is automatically assigned a category via GPT, deduplicated against existing categories using vector similarity, then indexed as a KNN embedding for natural-language search.
 
 ---
 
@@ -16,34 +16,25 @@ This project answers natural-language queries against a corpus of PDF files. Ins
 
 ```mermaid
 flowchart LR
-    A[PDF Files\nfiles/pdf/English/] -->|PyMuPDF| B[Raw Text\nper page]
-    B -->|clean_text| C[Cleaned Text]
-    C -->|SemanticChunker\nall-MiniLM-L12-v2| D[Text Chunks]
-    D -->|OpenAI\ntext-embedding-3-large| E[3072-dim Vectors]
-    E -->|opensearch-py| F[(OpenSearch Index\nKNN / HNSW / Faiss)]
+    A[Text Files\nfiles/text/] -->|readlines| B[Raw Lines]
+    B -->|GPT-4o-mini| C[Category Label]
+    C -->|KNN search\ncategory_index| D{Similar category\nexists?}
+    D -->|yes| E[Reuse existing\ncategory_id]
+    D -->|no| F[GPT compare\nnew vs existing]
+    F -->|match found| E
+    F -->|no match| G[Add new category\nto category_index]
+    E --> H[Embed text\ntext-embedding-3-large]
+    G --> H
+    H -->|store with category_id| I[(embedding_index\nOpenSearch)]
 ```
 
 ### Query Pipeline
 
 ```mermaid
 flowchart LR
-    A[User Query] -->|OpenAI\ntext-embedding-3-large| B[Query Vector]
-    B -->|KNN Search\ntop-5 cosine| C[(OpenSearch Index)]
-    C --> D[Ranked Results\nscore + text + file path]
-```
-
-### Semantic Chunking Detail
-
-```mermaid
-flowchart TD
-    A[Full Document Text] --> B[Split into Sentences\nregex-based]
-    B --> C[Embed Sentences\nall-MiniLM-L12-v2]
-    C --> D{Cosine similarity\nbetween adjacent\nsentences}
-    D -->|below threshold 0.5| E[Insert Breakpoint]
-    D -->|above threshold| F[Keep in same chunk]
-    E --> G[Merge small chunks\nmin 200 / max 5000 chars]
-    F --> G
-    G --> H[Final Chunks]
+    A[User Query] -->|text-embedding-3-large| B[Query Vector]
+    B -->|KNN Search\ntop-5 cosine| C[(embedding_index)]
+    C --> D[Ranked Results\nscore + text + category_id]
 ```
 
 ---
@@ -52,18 +43,49 @@ flowchart TD
 
 ```
 opensearch-poc/
-├── main.py                        # Entry point — ingestion + search loop
-├── opensearch/
-│   └── opensearch.py              # create_index, add_document, search, delete_index
-├── sbert/
-│   ├── chunking_class.py          # SemanticChunker + get_file_contents
-│   └── iterations/                # Experimental chunking approaches
+├── src/
+│   ├── main.py                        # Entry point — ingestion + search loop
+│   ├── categorizer/
+│   │   ├── categorize.py              # get_category, check_similar_existing_category_else_return_new
+│   │   └── prompt.py                  # CATEGORIZE_SYSTEM_PROMPT, COMPARE_CATEGORIES_SYSTEM_PROMPT
+│   ├── embed/
+│   │   └── embedder.py                # get_vectors (OpenAI text-embedding-3-large)
+│   ├── opensearch/
+│   │   ├── index.py                   # Index mappings: embedding_index, category_index
+│   │   └── opensearch.py              # create_index, add_document, add_category,
+│   │                                  # search_documents, search_similar_category, delete_index
+│   └── sbert/
+│       └── chunking_class.py          # SemanticChunker (sentence-transformers)
 ├── files/
-│   └── pdf/
-│       └── English/               # PDF files to ingest
+│   └── text/                          # .txt files to ingest (one memory per line)
 ├── pyproject.toml
-└── .env                           # OPENAI_API_KEY (not committed)
+├── requirements.txt
+└── .env                               # API keys (not committed)
 ```
+
+---
+
+## OpenSearch Indexes
+
+### `embedding_index`
+Stores text chunks with their vector embeddings and category reference.
+
+| Field | Type | Details |
+|---|---|---|
+| `text_chunk` | `text` | Raw input text |
+| `category_id` | `keyword` | Reference to a doc in `category_index` |
+| `embedding` | `knn_vector` | 3072-dim, HNSW, Faiss, cosine similarity |
+
+### `category_index`
+Stores unique categories with their own embeddings for similarity search.
+
+| Field | Type | Details |
+|---|---|---|
+| `category_id` | `keyword` | SHA1 of category name (also the `_id`) |
+| `category_name` | `text` | Human-readable label |
+| `embedding` | `knn_vector` | 3072-dim, HNSW, Faiss, cosine similarity |
+
+> No native foreign key enforcement — `category_id` in `embedding_index` is an app-level reference to `_id` in `category_index`.
 
 ---
 
@@ -73,15 +95,14 @@ opensearch-poc/
 |---|---|
 | Python | >= 3.12 |
 | OpenSearch | Running locally on `localhost:9200` with SSL — see [Docker setup](docs/docker.md) |
-| OpenAI API key | `text-embedding-3-large` access |
+| OpenAI API key | `text-embedding-3-large` + `gpt-4o-mini` access |
 
 ### OpenSearch setup
 
-See **[docs/docker.md](docs/docker.md)** for full Docker and Docker Compose instructions.
+See **[docs/docker.md](docs/docker.md)** for Docker Compose instructions.
 
-The client connects with:
 - **Host:** `localhost:9200`
-- **Auth:** `admin / StrongPassword123!`
+- **Auth:** `admin / <OPENSEARCH_ADMIN_PASSWORD>`
 - **SSL:** enabled, cert verification disabled (dev only)
 
 ---
@@ -94,32 +115,36 @@ The client connects with:
    uv sync
    ```
 
-2. **Create a `.env` file** in the project root:
+2. **Create `.env`** in `src/opensearch/` and `src/categorizer/`:
 
    ```env
    OPENAI_API_KEY=sk-...
+   OPENSEARCH_ADMIN_PASSWORD=YourPassword
    ```
 
-3. **Place PDFs** under `files/pdf/English/`.
+   See `env.example` in each directory.
+
+3. **Add text files** under `files/text/` — one memory/note per line, blank lines between entries.
 
 ---
 
 ## Running
 
 ```bash
-python main.py
+python -m src.main
 ```
 
 The script will:
-1. Ingest and embed all PDFs into the `openai_rag_index_one` index.
-2. Drop into an interactive search prompt.
+1. Create `embedding_index` and `category_index` if they don't exist.
+2. Read all `.txt` files from `files/text/`.
+3. For each line: assign a category (GPT), match against existing categories (KNN + GPT comparison), embed and store.
+4. Drop into an interactive search prompt.
 
 ```
-Search: what is the vacation policy?
+Search: where did I park my car?
 --- Search Results ---
-Score (Similarity): 0.8921 | Text: Employees are entitled to...
-File path: files\pdf\English\Vacation Policy 2025.pdf
-...
+Score (Similarity): 0.8734 | Category: transportation | Text: Parked my car at the west entrance...
+-
 Search: exit
 ```
 
@@ -127,20 +152,24 @@ Type `e` or `exit` to quit.
 
 ---
 
-## Index Schema
+## Categorization Logic
 
-| Field | Type | Details |
-|---|---|---|
-| `text_chunk` | `text` | Raw chunk text |
-| `file_path` | `text` | Source PDF path |
-| `embedding` | `knn_vector` | 3072-dim, HNSW, Faiss, cosine similarity |
+Each new text entry goes through a two-step dedup check before creating a new category:
+
+1. **KNN search** `category_index` for top-5 similar categories by embedding similarity
+2. **If exact match found** in results → reuse that `category_id` directly
+3. **Else → GPT comparison** of the new label vs. the top-5 names:
+   - If semantically similar → reuse matched category
+   - If truly new → call `add_category()` and embed it
+
+This prevents category explosion (e.g., `automobile`, `car`, `vehicle` all map to `transportation`).
 
 ---
 
-## Deleting the Index
-
-Uncomment the last line in `main.py`:
+## Deleting Indexes
 
 ```python
-delete_index(index_name="openai_rag_index_one")
+from src.opensearch.opensearch import delete_index
+delete_index("embedding_index")
+delete_index("category_index")
 ```

@@ -38,7 +38,7 @@ def create_index() -> None:
             print(f"Index {index_name} already exists.")
 
 
-def add_document(index_name: str, chunk_idx: int, text: str, category_id: str) -> None:
+def add_document(index_name: str, text: str, category_id: str) -> None:
     """
     Embed ``text`` using OpenAI's ``text-embedding-3-large``
     and store it in OpenSearch.
@@ -63,33 +63,40 @@ def add_document(index_name: str, chunk_idx: int, text: str, category_id: str) -
         "category_id": category_id,
     }
 
-    doc_id = hashlib.sha1(f"{filepath}:{chunk_idx}".encode()).hexdigest()
+    doc_id = hashlib.sha1(text.encode()).hexdigest()
     os_client.index(index=index_name, body=document, id=doc_id, refresh=True)
     print(f"Added chunk {doc_id} to OpenSearch.")
 
 
-def search_category(category: str) -> list[dict]:
+def search_category(category: str, size: int = 5, k: int = 5) -> dict:
+    query_vector = get_vectors(text=category.lower())
     search_query = {
-        "size": 5,
+        "size": size,
         "_source": ["category_id", "category_name"],
         "query": {
-            "match": {
-                "category_name": {
-                    "query": category,
-                    "fuzziness": "AUTO",
+            "knn": {
+                "embedding": {
+                    "vector": query_vector,
+                    "k": k,
                 }
             }
         },
     }
     results = os_client.search(index="category_index", body=search_query)
-    return [
-        {"category_id": hit["_source"]["category_id"], "category_name": hit["_source"]["category_name"], "score": hit["_score"]}
-        for hit in results["hits"]["hits"]
-    ]
+
+    category_to_id = {}
+    for hit in results["hits"]["hits"]:
+        category_id = hit["_source"]["category_id"]
+        category_name = hit["_source"]["category_name"]
+        score = hit["_score"]
+        category_to_id[category_name] = category_id
+
+        print(f"SCORE: {score} | id: {category_id} | category: {category_name}")
+
+    return category_to_id
 
 
 def search_documents(
-    index_name: str,
     user_query: str,
     size: int = 5,
     k: int = 5,
@@ -121,7 +128,7 @@ def search_documents(
         },
     }
 
-    results = os_client.search(index=index_name, body=search_query)
+    results = os_client.search(index="embedding_index", body=search_query)
 
     print("\n--- Search Results ---")
     for hit in results["hits"]["hits"]:

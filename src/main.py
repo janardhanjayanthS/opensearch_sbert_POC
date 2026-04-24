@@ -47,11 +47,11 @@ if __name__ == "__main__":
         # TODO: 1 - try to create a category for this content and check it with existing categories
         category = get_category(text=content)
         # TODO: 2 - get similar categories (using vector search)
-        existing_categories = search_category(category=category)
+        existing_categories: dict = search_category(category=category)
 
         # TODO: 3 - compare the current category with similar ones - using ai
         comparison_result = check_similar_existing_category_else_return_new(
-            new_category=category, existing_categories=existing_categories
+            new_category=category, existing_categories=list(existing_categories.keys())
         )
 
         # TODO: 4 - if there is an existing common/similar category then add content with that category

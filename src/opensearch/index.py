@@ -19,24 +19,22 @@ embedding = {
 }
 
 category = {
+    "settings": {"index.knn": True},
     "mappings": {
-        "settings": {"index.knn": True},
-        "mappings": {
-            "properties": {
-                "id": {"type": "keyword"},
-                "name": {"type": "text"},
-                "embedding": {
-                    "type": "knn_vector",
-                    "dimension": 3072,
-                    "method": {
-                        "name": "hnsw",
-                        "space_type": "cosinesimil",
-                        "engine": "fiass"
-                    }
-                }
-            }
+        "properties": {
+            "category_id": {"type": "keyword"},
+            "category_name": {"type": "text"},
+            "embedding": {
+                "type": "knn_vector",
+                "dimension": 3072,
+                "method": {
+                    "name": "hnsw",
+                    "space_type": "cosinesimil",
+                    "engine": "faiss",
+                },
+            },
         }
-    }
+    },
 }
 
 indexes = {"embedding_index": embedding, "category_index": category}

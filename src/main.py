@@ -2,7 +2,11 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from src.categorizer.categorize import get_category
+from src.categorizer.categorize import (
+    check_similar_existing_category_else_return_new,
+    get_category,
+)
+from src.opensearch.opensearch import search_category
 
 TXT_DIR_PATH = str(Path(__file__).parent.parent) + "\\files\\text\\"
 
@@ -42,11 +46,21 @@ if __name__ == "__main__":
     for content in contents:
         # TODO: 1 - try to create a category for this content and check it with existing categories
         category = get_category(text=content)
-        # TODO: 2 - if there is an existing category then add the current content to that category, else create a new category for this content
+        # TODO: 2 - get similar categories (using vector search)
+        existing_categories = search_category(category=category)
 
-        # TODO: 2.1 - add that new category to category index
-        ...
-        # TODO: 2.2 - add that content to embeddings_index with the created category
+        # TODO: 3 - compare the current category with similar ones - using ai
+        comparison_result = check_similar_existing_category_else_return_new(
+            new_category=category, existing_categories=existing_categories
+        )
+
+        # TODO: 4 - if there is an existing common/similar category then add content with that category
+        if comparison_result == category:
+            ...
+        else:
+            ...
+
+        # TODO: 5 - else add the doc with this new category
 
     # while True:
     #     query = input("Search: ")

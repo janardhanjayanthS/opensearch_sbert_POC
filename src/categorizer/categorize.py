@@ -19,7 +19,22 @@ def get_category(text: str) -> str:
             {"role": "human", "content": text},
         ]
     )
-    print(response.content)
+    return response.content
+
+
+def check_similar_existing_category_else_return_new(
+    new_category: str, existing_categories: list[str]
+):
+    response = openai.invoke(
+        [
+            {"role": "system", "content": "the system message"},
+            {
+                "role": "human",
+                "content": f"new category: {new_category} and existing categories: {existing_categories}",
+            },
+        ]
+    )
+    return response.content
 
 
 # if __name__ == "__main__":

@@ -68,6 +68,26 @@ def add_document(index_name: str, chunk_idx: int, text: str, category_id: str) -
     print(f"Added chunk {doc_id} to OpenSearch.")
 
 
+def search_category(category: str) -> list[dict]:
+    search_query = {
+        "size": 5,
+        "_source": ["category_id", "category_name"],
+        "query": {
+            "match": {
+                "category_name": {
+                    "query": category,
+                    "fuzziness": "AUTO",
+                }
+            }
+        },
+    }
+    results = os_client.search(index="category_index", body=search_query)
+    return [
+        {"category_id": hit["_source"]["category_id"], "category_name": hit["_source"]["category_name"], "score": hit["_score"]}
+        for hit in results["hits"]["hits"]
+    ]
+
+
 def search_documents(
     index_name: str,
     user_query: str,

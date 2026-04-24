@@ -124,16 +124,20 @@ def search_documents(
     user_query: str,
     size: int = 5,
     k: int = 5,
+    bm25_weight: float = 1.0,
+    vector_weight: float = 1.0,
 ) -> None:
-    """KNN vector search over embedding_index.
+    """Hybrid BM25 + KNN vector search over embedding_index.
 
-    Embeds user_query with the same model used at ingest, retrieves top-k nearest
-    neighbours by cosine similarity via HNSW/Faiss.
+    Combines keyword matching (BM25) and semantic similarity (KNN) via bool/should.
+    Adjust bm25_weight and vector_weight to shift ranking toward keyword or semantic results.
 
     Args:
         user_query: Natural language query.
         size: Number of hits to return.
         k: KNN neighbours to retrieve per shard.
+        bm25_weight: Boost applied to BM25 keyword match score.
+        vector_weight: Boost applied to KNN cosine similarity score.
     """
     query_text = user_query.lower()
     query_vector = get_vectors(text=query_text)
@@ -142,15 +146,28 @@ def search_documents(
         "size": size,
         "_source": ["text_chunk", "category_id"],
         "query": {
-            "knn": {
-                "embedding": {
-                    "vector": query_vector,
-                    "k": k,
-                }
+            "bool": {
+                "should": [
+                    {
+                        "multi_match": {
+                            "query": query_text,
+                            "fields": ["text_chunk^2"],
+                            "boost": bm25_weight,
+                        }
+                    },
+                    {
+                        "knn": {
+                            "embedding": {
+                                "vector": query_vector,
+                                "k": k,
+                                "boost": vector_weight,
+                            }
+                        }
+                    },
+                ]
             }
         },
     }
-
     results = os_client.search(index="embedding_index", body=search_query)
 
     print("\n--- Search Results ---")
@@ -158,9 +175,7 @@ def search_documents(
         score = hit["_score"]
         text = hit["_source"]["text_chunk"]
         category_id = hit["_source"]["category_id"]
-        print(
-            f"Score (Similarity): {score:.4f} | Category: {category_id} | Text: {text}"
-        )
+        print(f"Score: {score:.4f} | Category: {category_id} | Text: {text}")
         print("-")
 
 

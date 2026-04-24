@@ -15,26 +15,41 @@ Designed for personal memory retrieval — store notes, reminders, observations,
 ### Ingestion Pipeline
 
 ```mermaid
-flowchart LR
-    A[Text Files\nfiles/text/] -->|readlines| B[Raw Lines]
-    B -->|GPT-4o-mini| C[Category Label]
-    C -->|KNN search\ncategory_index| D{Similar category\nexists?}
-    D -->|yes| E[Reuse existing\ncategory_id]
-    D -->|no| F[GPT compare\nnew vs existing]
+flowchart TD
+    A["📄 Text Files<br/><code>files/text/*.txt</code>"]
+    B["📝 Raw Lines<br/><i>one memory per line</i>"]
+    C["🏷️ Category Label<br/><i>GPT-4o-mini</i>"]
+    D{"🔍 Similar category<br/>already exists?"}
+    E["✅ Reuse existing<br/><code>category_id</code>"]
+    F["🤖 GPT Comparison<br/><i>new label vs top-5 existing</i>"]
+    G["➕ Add new category<br/><code>category_index</code>"]
+    H["🔢 Embed Text<br/><i>text-embedding-3-large<br/>3072-dim vector</i>"]
+    I[("💾 embedding_index<br/><i>OpenSearch KNN</i>")]
+
+    A -->|readlines| B
+    B -->|LLM categorize| C
+    C -->|KNN search<br/>category_index| D
+    D -->|yes — exact match| E
+    D -->|no| F
     F -->|match found| E
-    F -->|no match| G[Add new category\nto category_index]
-    E --> H[Embed text\ntext-embedding-3-large]
-    G --> H
-    H -->|store with category_id| I[(embedding_index\nOpenSearch)]
+    F -->|no match — new category| G
+    E -->|pass category_id| H
+    G -->|pass new category_id| H
+    H -->|store with category_id| I
 ```
 
 ### Query Pipeline
 
 ```mermaid
-flowchart LR
-    A[User Query] -->|text-embedding-3-large| B[Query Vector]
-    B -->|KNN Search\ntop-5 cosine| C[(embedding_index)]
-    C --> D[Ranked Results\nscore + text + category_id]
+flowchart TD
+    A["💬 User Query<br/><i>natural language</i>"]
+    B["🔢 Query Vector<br/><i>text-embedding-3-large<br/>3072-dim</i>"]
+    C[("💾 embedding_index<br/><i>OpenSearch KNN</i>")]
+    D["📊 Ranked Results<br/><i>score + text + category_id<br/>top-5 by cosine similarity</i>"]
+
+    A -->|embed| B
+    B -->|KNN search| C
+    C -->|retrieve| D
 ```
 
 ---

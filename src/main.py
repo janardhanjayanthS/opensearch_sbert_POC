@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from time import perf_counter
 from typing import Optional
 
 from src.categorizer.categorize import (
@@ -9,6 +10,8 @@ from src.categorizer.categorize import (
 from src.opensearch.opensearch import (
     add_category,
     add_document,
+    create_index,
+    search_documents,
     search_similar_category,
 )
 
@@ -44,38 +47,49 @@ if __name__ == "__main__":
     embedding_index = "embedding_index"
 
     # Create a new index (table)
-    # create_index()
+    create_index()
 
     contents = get_text_file_contents()
 
     for content in contents:
         category = get_category(text=content)
-        existing_categories: dict = search_similar_category(category=category)
+        existing_categories_to_ids: dict = search_similar_category(category=category)
+
+        if category in existing_categories_to_ids:
+            category_id = existing_categories_to_ids[category]
+            add_document(text=content, category_id=category_id)
+            print(
+                f"skipping because new category: {category} already exists: {existing_categories_to_ids.keys()}"
+            )
+            print("-" * 10)
+            continue
 
         comparison_result = check_similar_existing_category_else_return_new(
-            new_category=category, existing_categories=list(existing_categories.keys())
+            new_category=category,
+            existing_categories=list(existing_categories_to_ids.keys()),
         )
-        print(f'Comparison result: {comparison_result}')
+        print(f"Comparison result: {comparison_result}")
 
         if comparison_result == category:
             category_id = add_category(category_name=category)
         else:
-            category_id = existing_categories[comparison_result]
+            category_id = existing_categories_to_ids[comparison_result]
 
         add_document(text=content, category_id=category_id)
+        print("-" * 10)
 
-    # while True:
-    #     query = input("Search: ")
+    while True:
+        query = input("Search: ")
 
-    #     if query.lower() in {"e", "exit"}:
-    #         break
+        if query.lower() in {"e", "exit"}:
+            break
 
-    #     # searching
-    #     start = perf_counter()
-    #     search(index_name=embedding_index, user_query=query)
-    #     end = perf_counter()
-    #     print("-")
-    #     print(f"Response time: {round(end - start, 4)} s")
-    #     print("-")
+        # searching
+        start = perf_counter()
+        search_documents(user_query=query)
+        end = perf_counter()
+        print("-")
+        print(f"Response time: {round(end - start, 4)} s")
+        print("-")
 
     # delete_index(index_name=index)

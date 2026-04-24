@@ -1,29 +1,20 @@
 import os
-from time import perf_counter
+from pathlib import Path
 from typing import Optional
 
-from opensearch.opensearch import add_document, create_index, search
-from sbert.chunking_class import SemanticChunker, get_file_contents
+from src.categorizer.categorize import get_category
 
-BASE_PATH = "files\\pdf\\English"
-# BASE_PATH = "files\\pdf\\Books"
+TXT_DIR_PATH = str(Path(__file__).parent.parent) + "\\files\\text\\"
 
 
-def get_file_paths() -> Optional[list[str]]:
-    """
-    Collect all file paths from the base PDF directory.
+def get_text_file_contents() -> Optional[list[str]]:
+    text_files = os.listdir(TXT_DIR_PATH)
+    print(f"text file: {text_files}")
+    for text_file in text_files:
+        with open(TXT_DIR_PATH + text_file, "r") as file:
+            contents = file.readlines()
 
-    Reads every file in ``BASE_PATH`` and returns their full relative paths.
-
-    Returns:
-        A list of file path strings, e.g.
-        ``["files\\pdf\\English\\doc.pdf", ...]``.
-    """
-    pdfs = os.listdir(BASE_PATH)
-    file_paths = []
-    for pdf in pdfs:
-        file_paths.append(BASE_PATH + "\\" + pdf)
-    return file_paths
+    return [content.strip("\n") for content in contents if content != "\n"]
 
 
 if __name__ == "__main__":
@@ -41,36 +32,34 @@ if __name__ == "__main__":
            and return the top-5 most similar chunks from the index.
            Type ``e`` or ``exit`` to quit.
     """
-    index = "openai_rag_index_one"
-
-    file_paths = get_file_paths()
-    # Chunker
-    chunker = SemanticChunker()
+    embedding_index = "embedding_index"
 
     # Create a new index (table)
-    create_index(index_name=index)
-    for filepath in file_paths:
-        file_contents = get_file_contents(filepath)
-        text = "".join(list(file_contents))
-        chunks = chunker.chunk(text)
-        print(f"{len(chunks)} chunks from {filepath}")
+    # create_index()
 
-        # embedding + storing
-        for idx, chunk in enumerate(chunks, start=1):
-            add_document(index_name=index, chunk_idx=idx, text=chunk, filepath=filepath)
+    contents = get_text_file_contents()
 
-    while True:
-        query = input("Search: ")
+    for content in contents:
+        # TODO: 1 - try to create a category for this content and check it with existing categories
+        category = get_category(text=content)
+        # TODO: 2 - if there is an existing category then add the current content to that category, else create a new category for this content
 
-        if query.lower() in {"e", "exit"}:
-            break
+        # TODO: 2.1 - add that new category to category index
+        ...
+        # TODO: 2.2 - add that content to embeddings_index with the created category
 
-        # searching
-        start = perf_counter()
-        search(index_name=index, user_query=query)
-        end = perf_counter()
-        print("-")
-        print(f"Response time: {round(end - start, 4)} s")
-        print("-")
+    # while True:
+    #     query = input("Search: ")
+
+    #     if query.lower() in {"e", "exit"}:
+    #         break
+
+    #     # searching
+    #     start = perf_counter()
+    #     search(index_name=embedding_index, user_query=query)
+    #     end = perf_counter()
+    #     print("-")
+    #     print(f"Response time: {round(end - start, 4)} s")
+    #     print("-")
 
     # delete_index(index_name=index)

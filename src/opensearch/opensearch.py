@@ -4,7 +4,8 @@ from os import getenv
 from dotenv import load_dotenv
 from opensearchpy import OpenSearch
 
-from embed.embedder import get_vectors
+from src.embed.embedder import get_vectors
+from src.opensearch.index import indexes
 
 load_dotenv()
 
@@ -19,7 +20,7 @@ os_client = OpenSearch(
 )
 
 
-def create_index(index_name: str = "my-openai-rag-index") -> None:
+def create_index() -> None:
     """
     Create the OpenSearch index with KNN vector search enabled if it doesn't already exist.
 
@@ -28,33 +29,16 @@ def create_index(index_name: str = "my-openai-rag-index") -> None:
     - ``embedding``: a 3072-dim KNN vector (HNSW via Faiss, cosine similarity),
       matching the output dimension of ``text-embedding-3-large``
     """
-    index_body = {
-        "settings": {"index.knn": True},
-        "mappings": {
-            "properties": {
-                "text_chunk": {"type": "text"},
-                "file_path": {"type": "text"},
-                "embedding": {
-                    "type": "knn_vector",
-                    "dimension": 3072,
-                    "method": {
-                        "name": "hnsw",
-                        "space_type": "cosinesimil",
-                        "engine": "faiss",
-                    },
-                },
-            }
-        },
-    }
 
-    if not os_client.indices.exists(index=index_name):
-        os_client.indices.create(index=index_name, body=index_body)
-        print(f"Created index: {index_name}")
-    else:
-        print(f"Index {index_name} already exists.")
+    for index_name, index in indexes.items():
+        if not os_client.indices.exists(index=index_name):
+            os_client.indices.create(index=index_name, body=index)
+            print(f"Created index: {index_name}")
+        else:
+            print(f"Index {index_name} already exists.")
 
 
-def add_document(index_name: str, chunk_idx: int, text: str, filepath: str) -> None:
+def add_document(index_name: str, chunk_idx: int, text: str, category_id: str) -> None:
     """
     Embed ``text`` using OpenAI's ``text-embedding-3-large``
     and store it in OpenSearch.
@@ -65,17 +49,26 @@ def add_document(index_name: str, chunk_idx: int, text: str, filepath: str) -> N
     Args:
         chunk_idx: pos of chunk from all chunk_list starting from 1.
         text: Raw text to embed and store.
+        category_id: FK reference to a doc in category_index.
     """
+    if not category_id:
+        raise ValueError("category_id must not be empty")
+
+    # get category for this text
     vector = get_vectors(text=text)
 
-    document = {"text_chunk": text, "embedding": vector, "file_path": filepath}
+    document = {
+        "text_chunk": text,
+        "embedding": vector,
+        "category_id": category_id,
+    }
 
     doc_id = hashlib.sha1(f"{filepath}:{chunk_idx}".encode()).hexdigest()
     os_client.index(index=index_name, body=document, id=doc_id, refresh=True)
     print(f"Added chunk {doc_id} to OpenSearch.")
 
 
-def search(
+def search_documents(
     index_name: str,
     user_query: str,
     size: int = 5,

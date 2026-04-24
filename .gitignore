@@ -1,8 +1,9 @@
 # Claude
 .claude
 
-# Files
-files*
+# files
+files/old
+files/pdf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

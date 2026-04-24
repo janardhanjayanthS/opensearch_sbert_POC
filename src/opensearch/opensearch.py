@@ -21,14 +21,7 @@ os_client = OpenSearch(
 
 
 def create_index() -> None:
-    """
-    Create the OpenSearch index with KNN vector search enabled if it doesn't already exist.
-
-    The index stores two fields per document:
-    - ``text_chunk``: the raw text
-    - ``embedding``: a 3072-dim KNN vector (HNSW via Faiss, cosine similarity),
-      matching the output dimension of ``text-embedding-3-large``
-    """
+    """Create all indexes defined in index.py if they don't already exist."""
 
     for index_name, index in indexes.items():
         if not os_client.indices.exists(index=index_name):
@@ -39,17 +32,13 @@ def create_index() -> None:
 
 
 def add_document(text: str, category_id: str) -> None:
-    """
-    Embed ``text`` using OpenAI's ``text-embedding-3-large``
-    and store it in OpenSearch.
+    """Embed text and store it in embedding_index.
 
-    The document is indexed immediately (``refresh=True``) so it is
-    searchable without waiting for the next index refresh cycle.
+    doc_id is SHA1 of text content — re-indexing the same text overwrites the existing doc.
 
     Args:
-        chunk_idx: pos of chunk from all chunk_list starting from 1.
         text: Raw text to embed and store.
-        category_id: FK reference to a doc in category_index.
+        category_id: ID of the associated doc in category_index.
     """
     if not category_id:
         raise ValueError("category_id must not be empty")
@@ -68,16 +57,41 @@ def add_document(text: str, category_id: str) -> None:
     print(f"Added chunk {doc_id} to OpenSearch.")
 
 
-def add_category(category_name: str) -> None:
+def add_category(category_name: str) -> str:
+    """Embed category_name and store it in category_index.
+
+    doc_id (= category_id) is SHA1 of category_name — idempotent.
+
+    Args:
+        category_name: Human-readable category label.
+
+    Returns:
+        category_id (SHA1 hex string) used as the document _id.
+    """
     vector = get_vectors(text=category_name)
-
-    content = {"category_name": category_name, "embedding": vector}
-
     category_id = hashlib.sha1(category_name.encode()).hexdigest()
+
+    content = {
+        "category_name": category_name,
+        "category_id": category_id,
+        "embedding": vector,
+    }
+
     os_client.index(body=content, id=category_id, index="category_index", refresh=True)
+    return category_id
 
 
-def search_category(category: str, size: int = 5, k: int = 5) -> dict:
+def search_similar_category(category: str, size: int = 5, k: int = 5) -> dict:
+    """KNN search category_index for categories semantically similar to the input.
+
+    Args:
+        category: Category label to search against.
+        size: Max results to return.
+        k: KNN neighbours to retrieve per shard.
+
+    Returns:
+        Dict of {category_name: category_id} for top matches.
+    """
     query_vector = get_vectors(text=category.lower())
     search_query = {
         "size": size,
@@ -110,23 +124,22 @@ def search_documents(
     size: int = 5,
     k: int = 5,
 ) -> None:
-    """
-    Perform a KNN vector search against the index.
+    """KNN vector search over embedding_index.
 
-    Query is embedded with the same model used during ingest, then the top-``size``
-    nearest neighbours are retrieved from the HNSW graph by cosine similarity.
+    Embeds user_query with the same model used at ingest, retrieves top-k nearest
+    neighbours by cosine similarity via HNSW/Faiss.
 
     Args:
         user_query: Natural language query.
         size: Number of hits to return.
-        k: KNN neighbours to retrieve from HNSW per shard.
+        k: KNN neighbours to retrieve per shard.
     """
     query_text = user_query.lower()
     query_vector = get_vectors(text=query_text)
 
     search_query = {
         "size": size,
-        "_source": ["text_chunk", "file_path"],
+        "_source": ["text_chunk", "category_id"],
         "query": {
             "knn": {
                 "embedding": {
@@ -143,9 +156,10 @@ def search_documents(
     for hit in results["hits"]["hits"]:
         score = hit["_score"]
         text = hit["_source"]["text_chunk"]
-        file = hit["_source"]["file_path"]
-        print(f"Score (Similarity): {score:.4f} | Text: {text}")
-        print(f"File path: {file}")
+        category_id = hit["_source"]["category_id"]
+        print(
+            f"Score (Similarity): {score:.4f} | Category: {category_id} | Text: {text}"
+        )
         print("-")
 
 

@@ -6,12 +6,17 @@ from src.categorizer.categorize import (
     check_similar_existing_category_else_return_new,
     get_category,
 )
-from src.opensearch.opensearch import search_category
+from src.opensearch.opensearch import (
+    add_category,
+    add_document,
+    search_similar_category,
+)
 
 TXT_DIR_PATH = str(Path(__file__).parent.parent) + "\\files\\text\\"
 
 
 def get_text_file_contents() -> Optional[list[str]]:
+    """Read all .txt files from TXT_DIR_PATH and return their non-empty lines."""
     text_files = os.listdir(TXT_DIR_PATH)
     print(f"text file: {text_files}")
     for text_file in text_files:
@@ -44,23 +49,19 @@ if __name__ == "__main__":
     contents = get_text_file_contents()
 
     for content in contents:
-        # TODO: 1 - try to create a category for this content and check it with existing categories
         category = get_category(text=content)
-        # TODO: 2 - get similar categories (using vector search)
-        existing_categories: dict = search_category(category=category)
+        existing_categories: dict = search_similar_category(category=category)
 
-        # TODO: 3 - compare the current category with similar ones - using ai
         comparison_result = check_similar_existing_category_else_return_new(
             new_category=category, existing_categories=list(existing_categories.keys())
         )
 
-        # TODO: 4 - if there is an existing common/similar category then add content with that category
         if comparison_result == category:
-            ...
+            category_id = add_category(category_name=category)
         else:
-            ...
+            category_id = existing_categories[comparison_result]
 
-        # TODO: 5 - else add the doc with this new category
+        add_document(text=content, category_id=category_id)
 
     # while True:
     #     query = input("Search: ")

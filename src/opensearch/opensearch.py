@@ -38,7 +38,7 @@ def create_index() -> None:
             print(f"Index {index_name} already exists.")
 
 
-def add_document(index_name: str, text: str, category_id: str) -> None:
+def add_document(text: str, category_id: str) -> None:
     """
     Embed ``text`` using OpenAI's ``text-embedding-3-large``
     and store it in OpenSearch.
@@ -64,8 +64,17 @@ def add_document(index_name: str, text: str, category_id: str) -> None:
     }
 
     doc_id = hashlib.sha1(text.encode()).hexdigest()
-    os_client.index(index=index_name, body=document, id=doc_id, refresh=True)
+    os_client.index(index="embedding_index", body=document, id=doc_id, refresh=True)
     print(f"Added chunk {doc_id} to OpenSearch.")
+
+
+def add_category(category_name: str) -> None:
+    vector = get_vectors(text=category_name)
+
+    content = {"category_name": category_name, "embedding": vector}
+
+    category_id = hashlib.sha1(category_name.encode()).hexdigest()
+    os_client.index(body=content, id=category_id, index="category_index", refresh=True)
 
 
 def search_category(category: str, size: int = 5, k: int = 5) -> dict:
